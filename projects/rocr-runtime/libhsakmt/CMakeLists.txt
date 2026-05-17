@@ -205,6 +205,12 @@ else()
       ${CMAKE_CURRENT_SOURCE_DIR}/../runtime/hsa-runtime)
   endif()
 
+  if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+    target_include_directories( ${HSAKMT_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/hsakmt/freebsd )
+  elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    target_include_directories( ${HSAKMT_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/hsakmt/linux )
+  endif()
+
   ## Add headers.  The public headers need to point at their location in both build and install
   ## directory layouts.  This declaration allows publishing library use data to downstream clients.
   target_include_directories( ${HSAKMT_TARGET}
@@ -394,6 +400,12 @@ else()
     ## In static builds, libdrm and libdrm_amdgpu need to be linked statically
     add_library (${HSAKMT_STATIC_DRM_TARGET}  STATIC "")
     target_sources (${HSAKMT_STATIC_DRM_TARGET} PRIVATE ${HSAKMT_SRC})
+
+  if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+    target_include_directories( ${HSAKMT_STATIC_DRM_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/hsakmt/freebsd )
+  elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    target_include_directories( ${HSAKMT_STATIC_DRM_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/hsakmt/linux )
+  endif()
 
     target_include_directories( ${HSAKMT_STATIC_DRM_TARGET}
       PUBLIC

@@ -26,11 +26,7 @@
 #ifndef HSAKMT_VIRTIO_H
 #define HSAKMT_VIRTIO_H
 
-#if defined(__linux__)
-#include "hsakmt/linux/kfd_ioctl.h"
-#elif defined(__FreeBSD__)
-#include "hsakmt/freebsd/kfd_ioctl.h"
-#endif
+#include <kfd_ioctl.h>
 
 // Forward declaration for HsaKFDContext to avoid dependency issues
 typedef struct _HsaKFDContext HsaKFDContext;
