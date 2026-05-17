@@ -1475,6 +1475,9 @@ struct kfd_ioctl_svm_attribute {
  * querying multiple GPUIDs. The ioctl function overwrites the
  * attribute type to indicate the access for the specified GPU.
  */
+
+ // TODO: FIXME: This is not compatible with FreeBSD, but for
+ // getting a basic Hello World Working, this is fine
 struct kfd_ioctl_svm_args {
 	__uint64_t start_addr;
 	__uint64_t size;

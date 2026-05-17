@@ -28,6 +28,8 @@
 
 #if defined(__linux__)
 #include "hsakmt/linux/kfd_ioctl.h"
+#elif defined(__FreeBSD__)
+#include "hsakmt/freebsd/kfd_ioctl.h"
 #endif
 
 // Forward declaration for HsaKFDContext to avoid dependency issues

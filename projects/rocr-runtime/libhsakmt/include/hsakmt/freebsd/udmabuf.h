@@ -12,22 +12,22 @@
 #define UDMABUF_FLAGS_CLOEXEC 0x01
 
 struct udmabuf_create {
-        __u32 memfd;
-        __u32 flags;
-        __u64 offset;
-        __u64 size;
+        __uint32_t memfd;
+        __uint32_t flags;
+        __uint64_t offset;
+        __uint64_t size;
 };
 
 struct udmabuf_create_item {
-        __u32 memfd;
-        __u32 __pad;
-        __u64 offset;
-        __u64 size;
+        __uint32_t memfd;
+        __uint32_t __pad;
+        __uint64_t offset;
+        __uint64_t size;
 };
 
 struct udmabuf_create_list {
-        __u32 flags;
-        __u32 count;
+        __uint32_t flags;
+        __uint32_t count;
         struct udmabuf_create_item list[];
 };
 
