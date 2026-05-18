@@ -48,7 +48,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-#include "hsakmt/linux/udmabuf.h"
+#include <udmabuf.h>
 
 #ifndef MPOL_F_STATIC_NODES
 /* Bug in numaif.h, this should be defined in there. Definition copied

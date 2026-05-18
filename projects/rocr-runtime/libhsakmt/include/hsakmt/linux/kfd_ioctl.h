@@ -1853,5 +1853,9 @@ struct kfd_ioctl_create_process_args {
 
 #define AMDKFD_COMMAND_START_2		0x80
 #define AMDKFD_COMMAND_END_2		0x88
+#ifndef _IOC_SIZEMASK
+#define _IOC_SIZEMASK ((1 << _IOC_SIZEBITS) - 1)
+#endif
+#define AMDKFD_MAX_IOCTL_SIZE _IOC_SIZEMASK
 
 #endif

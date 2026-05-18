@@ -170,8 +170,6 @@ else()
                      "src/libhsakmt.c"
                      "src/memory.c"
                      "src/openclose.c"
-                     "src/perfctr.c"
-                     "src/pmc_table.c"
                      "src/queues.c"
                      "src/time.c"
                      "src/topology.c"
@@ -182,6 +180,11 @@ else()
                      "src/pc_sampling.c"
                      "src/ais.c"
                      "src/kfdcontext.c")
+    if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+      list(APPEND HSAKMT_SRC "src/perfctr.c" "src/pmc_table.c")
+    elseif (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+      list(APPEND HSAKMT_SRC "src/freebsd/perfctr.c")
+    endif()
   endif()
 
   ## Declare the library target name

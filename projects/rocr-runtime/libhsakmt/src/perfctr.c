@@ -26,6 +26,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+
 #include <linux/perf_event.h>
 #include <sys/syscall.h>
 #include "libhsakmt.h"
@@ -754,4 +756,41 @@ HSAKMT_STATUS HSAKMTAPI hsaKmtPmcAcquireTraceAccess(HSAuint32 NodeId,
 {
 	return hsaKmtPmcAcquireTraceAccessCtx(&hsakmt_primary_kfd_ctx,
 							NodeId, TraceId);
+}
+
+#else /* !defined(__linux__) */
+
+#include "libhsakmt.h"
+
+HSAKMT_STATUS hsakmt_init_counter_props(HsaKFDContext *ctx, unsigned int NumNodes)
+{
+	return HSAKMT_STATUS_SUCCESS;
+}
+
+void hsakmt_destroy_counter_props(HsaKFDContext *ctx)
+{
+}
+
+HSAKMT_STATUS HSAKMTAPI hsaKmtPmcGetCounterPropertiesCtx(HsaKFDContext *ctx,
+						      HSAuint32 NodeId,
+						      HsaCounterProperties **CounterProperties)
+{
+	pr_warn_once("not supported\n");
+	return HSAKMT_STATUS_NOT_SUPPORTED;
+}
+
+HSAKMT_STATUS HSAKMTAPI hsaKmtPmcRegisterTraceCtx(HsaKFDContext* ctx,
+					       HSAuint32 NodeId,
+					       HSAuint32 NumberOfCounters,
+					       HsaCounter *Counters,
+					       HsaPmcTraceRoot *TraceRoot)
+{
+	pr_warn_once("not supported\n");
+	return HSAKMT_STATUS_NOT_SUPPORTED;
+}
+
+HSAKMT_STATUS HSAKMTAPI hsaKmtPmcUnregisterTraceCtx(HsaKFDContext* ctx,
+						 HSAuint32 NodeId,
+						 HSATraceId TraceId)
+{
 }

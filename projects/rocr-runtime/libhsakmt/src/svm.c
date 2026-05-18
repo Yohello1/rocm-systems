@@ -58,6 +58,10 @@ hsaKmtSVMSetAttrCtx(HsaKFDContext *ctx,
 		return HSAKMT_STATUS_INVALID_PARAMETER;
 
 	s_attr = sizeof(*attrs) * nattr;
+
+	if ((sizeof(*args) + s_attr) > AMDKFD_MAX_IOCTL_SIZE)
+		return HSAKMT_STATUS_INVALID_PARAMETER;
+
 	args = alloca(sizeof(*args) + s_attr);
 
 	args->start_addr = (uint64_t)start_addr;
@@ -126,6 +130,10 @@ hsaKmtSVMGetAttrCtx(HsaKFDContext *ctx,
 		return HSAKMT_STATUS_INVALID_PARAMETER;
 
 	s_attr = sizeof(*attrs) * nattr;
+
+	if ((sizeof(*args) + s_attr) > AMDKFD_MAX_IOCTL_SIZE)
+		return HSAKMT_STATUS_INVALID_PARAMETER;
+
 	args = alloca(sizeof(*args) + s_attr);
 
 	args->start_addr = (uint64_t)start_addr;

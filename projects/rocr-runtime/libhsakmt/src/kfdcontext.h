@@ -26,8 +26,7 @@
 #ifndef _KFDCONTEXT_H_
 #define _KFDCONTEXT_H_
 
-#include <stdint.h>
-#include <stdbool.h>
+#include "hsakmt/hsakmtctx.h"
 
 struct hsa_kfd_topology_context;
 struct hsa_kfd_queue_context;
@@ -51,7 +50,7 @@ struct hsa_kfd_perf_context;
  * context A cannot be used in context B directly. If resources need to be shared between
  * contexts, they must be explicitly exported and imported using the appropriate APIs.
  */
-typedef struct _HsaKFDContext
+struct _HsaKFDContext
 {
     /* File descriptor for the KFD device */
     int fd;
@@ -81,7 +80,7 @@ typedef struct _HsaKFDContext
 
     /* perf context for managing perf operations */
     struct hsa_kfd_perf_context *perf_context;
-} HsaKFDContext;
+};
 
 // Initialize a pre-allocated HsaKFDContext with the given file descriptor
 void hsakmt_kfdcontext_init_context(int fd, HsaKFDContext *ctx);

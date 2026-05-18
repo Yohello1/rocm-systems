@@ -1826,5 +1826,9 @@ struct kfd_ioctl_create_process_args {
 #define AMDKFD_COMMAND_END_2		0x88
 
 
+#ifndef IOCPARM_MASK
+#define IOCPARM_MASK 0x1fff
+#endif
+#define AMDKFD_MAX_IOCTL_SIZE IOCPARM_MASK
 
 #endif //KFD_IOCTL_H_INCLUDED
