@@ -8,6 +8,7 @@
 #include <libdrm/drm.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
+#include <sys/mman.h>
 
 /*
  * - 1.1 Initial Version 
@@ -15,6 +16,60 @@
 
 #define KFD_IOCTL_MAJOR_VERSION 1
 #define KFD_IOCTL_MINOR_VERSION 1
+
+
+
+// small hack, just remaps the function
+#ifndef MADV_DONTFORK
+#define MADV_DONTFORK 9999
+#endif
+
+static inline int upstream_madvice_wrapper(void* addr, size_t len, int advice)
+{
+	// spidey sense says that smth with page alignment will bite me
+	if(advice == MADV_DONTFORK)
+	{
+		return minherit(addr, len, INHERIT_NONE);
+	}
+	/*
+	Do not use this code unless the above code is broken, I did not think this code
+	through too well
+
+	if(advice == MADV_DONTFORK)
+	{
+		long pagesize = sysconf(_SC_PAGESIZE);
+		unitptr_t start = (uintptr_t)addr;
+		uintptr_t end = start + length;
+
+		uintptr_t aligned_start = start & ~(pagesize - 1);
+        	uintptr_t aligned_end = (end + pagesize - 1) & ~(pagesize - 1);
+        	size_t aligned_length = aligned_end - aligned_start;
+
+		return minherit((void *)aligned_start, aligned_length, INHERIT_NONE);
+	}
+
+	*/
+	return madvise(addr, len, advice);
+}
+
+#define madvise(addr, len, advice) upstream_madvise_wrapper(addr, len, advice)
+
+// now theoretically MAP_NORESERVE should do something
+// however, we need to consider that Linux & FreeBSD handle stuff 
+// "differently", Linux is fairly strict, and complains if u over-alloc
+// freeBSD follows lazy alloc
+// So we can just map this to a "no-op" thingy
+#ifndef MAP_NORESERVE
+#define MAP_NORESERVE 0
+#endif
+
+// In the man pages, it literally says (paraphrased) this is optional
+// and does not always exist
+// Thus implying that mapping to a no-op should be fine.
+// I think FreeBSD also does thus auto matically?
+#ifndef MADV_HUGEPAGE
+#define MADV_HUGEPAGE 0
+#endif
 
 
 struct kfd_ioctl_get_version_args {
