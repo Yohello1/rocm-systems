@@ -86,12 +86,15 @@
 #define _write write
 #define _lseek lseek
 #define _ftruncate ftruncate
-#if defined(__linux__)
-#include <sys/sendfile.h>
-#endif
 #else
 #define _ftruncate _chsize
 #endif // !_WIN32
+
+#ifndef __FreeBSD__ 
+#ifdef __linux__
+#include <sys/sendfile.h>
+#endif
+#endif
 
 #endif // !USE_MEMFILE
 
@@ -229,7 +232,7 @@ namespace elf {
         return perror("lseek(3) failed");
       }
       if (_lseek(d, 0L, SEEK_SET) < 0) { return perror("lseek(3) failed"); }
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__FreeBSD__)
       ssize_t written;
       do {
         written = sendfile(d, in, NULL, size);

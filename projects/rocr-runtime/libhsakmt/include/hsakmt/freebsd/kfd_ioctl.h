@@ -17,7 +17,8 @@
 #define KFD_IOCTL_MAJOR_VERSION 1
 #define KFD_IOCTL_MINOR_VERSION 1
 
-
+// another small hard coded value
+#define _IOC_SIZESHIFT 16
 
 // small hack, just remaps the function
 #ifndef MADV_DONTFORK
