@@ -54,6 +54,11 @@
 #include <sys/mman.h>
 #ifndef MAP_NORESERVE
 #define MAP_NORESERVE 0
+
+#ifndef MADV_HUGEPAGE
+#define MADV_HUGEPAGE 0
+#endif
+
 #endif
 #endif
 
