@@ -86,7 +86,9 @@
 #define _write write
 #define _lseek lseek
 #define _ftruncate ftruncate
+#if defined(__linux__)
 #include <sys/sendfile.h>
+#endif
 #else
 #define _ftruncate _chsize
 #endif // !_WIN32
@@ -227,6 +229,7 @@ namespace elf {
         return perror("lseek(3) failed");
       }
       if (_lseek(d, 0L, SEEK_SET) < 0) { return perror("lseek(3) failed"); }
+#if defined(__linux__)
       ssize_t written;
       do {
         written = sendfile(d, in, NULL, size);
@@ -236,6 +239,30 @@ namespace elf {
         }
         size -= written;
       } while (size > 0);
+#else
+      char buffer[4096];
+      while (size > 0) {
+        off_t to_read = (size < (off_t)sizeof(buffer)) ? size : (off_t)sizeof(buffer);
+        ssize_t bytes_read = _read(in, buffer, to_read);
+        if (bytes_read < 0) {
+          _close(in);
+          return perror("read failed");
+        }
+        if (bytes_read == 0) {
+          break; // EOF
+        }
+        ssize_t bytes_written = 0;
+        while (bytes_written < bytes_read) {
+          ssize_t written = _write(d, buffer + bytes_written, bytes_read - bytes_written);
+          if (written < 0) {
+            _close(in);
+            return perror("write failed");
+          }
+          bytes_written += written;
+        }
+        size -= bytes_read;
+      }
+#endif
       _close(in);
       if (_lseek(d, 0L, SEEK_SET) < 0) { return perror("lseek(0) failed"); }
       return true;
