@@ -50,6 +50,13 @@
 #include <vector>
 #include "utils.h"
 
+#ifdef __FreeBSD__
+#include <sys/mman.h>
+#ifndef MAP_NORESERVE
+#define MAP_NORESERVE 0
+#endif
+#endif
+
 namespace rocr {
 namespace os {
 typedef void* LibHandle;
