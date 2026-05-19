@@ -2377,7 +2377,7 @@ Runtime::Runtime()
   g_use_mwaitx = true;
   ::_amdgpu_r_debug.r_version = 11;
   ::_amdgpu_r_debug.r_map = nullptr;
-  ::_amdgpu_r_debug.r_brk = reinterpret_cast<uintptr_t>(&_loader_debug_state);
+  ::_amdgpu_r_debug.r_brk = reinterpret_cast<decltype(::_amdgpu_r_debug.r_brk)>(&_loader_debug_state);
   ::_amdgpu_r_debug.r_state = r_debug::RT_CONSISTENT;
   ::_amdgpu_r_debug.r_ldbase = 0;
   log_file = stderr;
