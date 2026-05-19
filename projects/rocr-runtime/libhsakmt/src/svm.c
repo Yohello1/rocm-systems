@@ -25,7 +25,10 @@
 #include "libhsakmt.h"
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
+#if defined(__linux__) // what the fuck 
 #include <alloca.h>
+#endif
 #include <fcntl.h>
 #include <unistd.h>
 #include <inttypes.h>
