@@ -137,7 +137,12 @@ set_property(TARGET  ${CORE_RUNTIME_TARGET} PROPERTY OUTPUT_NAME ${CORE_RUNTIME_
 
 ## Compiler preproc definitions.
 if (UNIX)
-  target_compile_definitions(${CORE_RUNTIME_TARGET} PRIVATE "${HSA_COMMON_DEFS}" __linux__ HSA_EXPORT=1 HSA_EXPORT_FINALIZER=1 HSA_EXPORT_IMAGES=1 HSA_DEPRECATED=
+  if(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+    set(OS_DEFS __FreeBSD__)
+  else()
+    set(OS_DEFS __linux__)
+  endif()
+  target_compile_definitions(${CORE_RUNTIME_TARGET} PRIVATE "${HSA_COMMON_DEFS}" ${OS_DEFS} HSA_EXPORT=1 HSA_EXPORT_FINALIZER=1 HSA_EXPORT_IMAGES=1 HSA_DEPRECATED=
   ROCR_BUILD_ID="${PACKAGE_VERSION_STRING}-${VERSION_JOB}-${VERSION_HASH}" )
 
   ## Check for memfd_create syscall
@@ -255,8 +260,13 @@ set ( SRCS core/driver/driver.cpp
            libamdhsacode/amd_hsa_code.cpp)
 
 if(UNIX)
-  set(SRC_OS core/util/lnx/os_linux.cpp
-	     libamdhsacode/lnx/amd_core_dump.cpp)
+  if(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+    set(SRC_OS core/util/freebsd/os_freebsd.cpp
+               libamdhsacode/lnx/amd_core_dump.cpp)
+  else()
+    set(SRC_OS core/util/lnx/os_linux.cpp
+               libamdhsacode/lnx/amd_core_dump.cpp)
+  endif()
   set(SRC_XDNA core/driver/xdna/amd_xdna_driver.cpp
                core/runtime/amd_aie_agent.cpp
                core/runtime/amd_aie_aql_queue.cpp)

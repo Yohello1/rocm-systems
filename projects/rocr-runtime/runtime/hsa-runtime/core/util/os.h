@@ -82,9 +82,10 @@ static __forceinline std::underlying_type<os_t>::type os_index(os_t val) {
   return std::underlying_type<os_t>::type(val);
 }
 
+// who the fuck uses this
 #ifdef _WIN32
 static const os_t current_os = os_t::OS_WIN;
-#elif __linux__
+#elif defined(__linux__) || defined(__FreeBSD__)
 static const os_t current_os = os_t::OS_LINUX;
 #else
 static_assert(false, "Operating System not detected!");
