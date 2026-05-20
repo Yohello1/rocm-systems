@@ -49,7 +49,7 @@ unset ( hsa-runtime64_LIB_DEPENDS CACHE )
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 if (UNIX)
-  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD 20)
 else()
   set(CMAKE_CXX_STANDARD 20)
 endif()

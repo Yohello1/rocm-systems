@@ -84,11 +84,16 @@ namespace {
 
 const std::array<std::function<hsa_status_t(std::unique_ptr<core::Driver>&)>,
 #if _WIN32
-                 1
+                 1>
 #elif __linux__
-                 static_cast<size_t>(core::DriverType::NUM_DRIVER_TYPES)
+                 static_cast<size_t>(core::DriverType::NUM_DRIVER_TYPES)>
+#elif __FreeBSD__
+                 static_cast<size_t>(core::DriverType::NUM_DRIVER_TYPES)>
+		 	
 #endif
-                 >
+
+
+
     discover_driver_funcs = {
         KfdDriver::DiscoverDriver
 #ifdef __linux__

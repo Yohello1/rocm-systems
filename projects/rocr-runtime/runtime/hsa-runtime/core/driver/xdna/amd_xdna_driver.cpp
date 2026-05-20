@@ -66,6 +66,10 @@
 #include "core/util/utils.h"
 #include "uapi/amdxdna_accel.h"
 
+#ifdef __FreeBSD__
+#include <sys/mman.h>
+#endif
+
 namespace rocr {
 namespace AMD {
 
