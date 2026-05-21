@@ -77,7 +77,12 @@ namespace core {
     is_dxg_ = true;
 #endif
 
+#if defined(__FreeBSD__)
+    is_dtif_ = is_dxg_ = false;
+    return "libhsakmt.so";
+#else
     return "";
+#endif
   }
 
   ThunkLoader::ThunkLoader()

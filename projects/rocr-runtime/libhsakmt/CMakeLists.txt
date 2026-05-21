@@ -37,6 +37,7 @@ else()
   set(HSAKMT_STATIC_DRM_TARGET "${HSAKMT_TARGET}-staticdrm")
 
   project ( ${HSAKMT_TARGET} VERSION 1.9.0)
+  set(BUILD_SHARED_LIBS ON FORCE)
 
   # Optionally, build HSAKMT with ccache.
   set(ROCM_CCACHE_BUILD OFF CACHE BOOL "Set to ON for a ccache enabled build")
@@ -188,7 +189,7 @@ else()
   endif()
 
   ## Declare the library target name
-  add_library (${HSAKMT_TARGET} STATIC "")
+  add_library (${HSAKMT_TARGET} SHARED "")
 
   ## Add sources
   target_sources ( ${HSAKMT_TARGET} PRIVATE ${HSAKMT_SRC} )
@@ -401,7 +402,7 @@ else()
   if ( NOT BUILD_SHARED_LIBS)
     ## Create separate target file for static builds
     ## In static builds, libdrm and libdrm_amdgpu need to be linked statically
-    add_library (${HSAKMT_STATIC_DRM_TARGET}  STATIC "")
+    add_library (${HSAKMT_STATIC_DRM_TARGET}  SHARED "")
     target_sources (${HSAKMT_STATIC_DRM_TARGET} PRIVATE ${HSAKMT_SRC})
 
   if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")

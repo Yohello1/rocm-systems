@@ -801,7 +801,8 @@ HSAKMT_STATUS HSAKMTAPI hsaKmtRegisterGraphicsHandleToNodes(HSAuint64 GraphicsRe
 
 }
 
-HSAKMT_STATUS HSAKMTAPI hsaKmtRegisterGraphicsHandleToNodesExt(HSAuint64 GraphicsResourceHandle,
+// chicken nuggets
+__attribute__((visibility("default"))) HSAKMT_STATUS HSAKMTAPI hsaKmtRegisterGraphicsHandleToNodesExt(HSAuint64 GraphicsResourceHandle,
 							       HsaGraphicsResourceInfo *GraphicsResourceInfo,
 							       HSAuint64 NumberOfNodes,
 							       HSAuint32 *NodeArray,
