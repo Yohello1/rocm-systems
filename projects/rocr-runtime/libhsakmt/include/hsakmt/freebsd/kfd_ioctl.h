@@ -25,7 +25,7 @@
 #define MADV_DONTFORK 9999
 #endif
 
-static inline int upstream_madvice_wrapper(void* addr, size_t len, int advice)
+static inline int upstream_madvise_wrapper(void* addr, size_t len, int advice)
 {
 	// spidey sense says that smth with page alignment will bite me
 	if(advice == MADV_DONTFORK)
@@ -54,6 +54,24 @@ static inline int upstream_madvice_wrapper(void* addr, size_t len, int advice)
 }
 
 #define madvise(addr, len, advice) upstream_madvise_wrapper(addr, len, advice)
+
+#include <sys/ioccom.h>
+
+#ifndef _IOC_TYPE
+#define _IOC_TYPE(cmd)  IOCGROUP(cmd)
+#endif
+
+#ifndef _IOC_NR
+#define _IOC_NR(cmd)    ((cmd) & 0xff)
+#endif
+
+#ifndef _IOC_DIR
+#define _IOC_DIR(cmd)   ((cmd) & IOC_DIRMASK)
+#endif
+
+#ifndef _IOC_SIZE
+#define _IOC_SIZE(cmd)  IOCPARM_LEN(cmd)
+#endif
 
 // now theoretically MAP_NORESERVE should do something
 // however, we need to consider that Linux & FreeBSD handle stuff 
