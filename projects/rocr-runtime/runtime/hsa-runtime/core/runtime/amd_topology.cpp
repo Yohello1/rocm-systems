@@ -85,9 +85,9 @@ namespace {
 const std::array<std::function<hsa_status_t(std::unique_ptr<core::Driver>&)>,
 #if _WIN32
                  1>
-#elif __linux__
-                 static_cast<size_t>(core::DriverType::NUM_DRIVER_TYPES)>
 #elif __FreeBSD__
+                 1>
+#elif __linux__
                  static_cast<size_t>(core::DriverType::NUM_DRIVER_TYPES)>
 		 	
 #endif
@@ -96,18 +96,21 @@ const std::array<std::function<hsa_status_t(std::unique_ptr<core::Driver>&)>,
 
     discover_driver_funcs = {
         KfdDriver::DiscoverDriver
-#ifdef __linux__
-        , XdnaDriver::DiscoverDriver
-#ifdef HSAKMT_VIRTIO_ENABLED
-        , KfdVirtioDriver::DiscoverDriver
-#endif
-#endif
+// #if defined(__linux__) && !defined(__FreeBSD__)
+ //       , XdnaDriver::DiscoverDriver
+// #ifdef HSAKMT_VIRTIO_ENABLED
+//        , KfdVirtioDriver::DiscoverDriver
+// #endif
+// #endif
 };
 
 void DiscoverDrivers() {
   for (const auto& discover_driver_fn : discover_driver_funcs) {
-    std::unique_ptr<core::Driver> driver;
+	std::cout << "The chickens are gay" << std::endl;
+      
+	  std::unique_ptr<core::Driver> driver;
     hsa_status_t ret = discover_driver_fn(driver);
+
 
     if (ret != HSA_STATUS_SUCCESS) continue;
 

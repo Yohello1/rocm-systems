@@ -2404,7 +2404,7 @@ hsa_status_t Runtime::Load() {
     return HSA_STATUS_ERROR_NOT_INITIALIZED;
   }
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
   if (!thunkLoader_->CheckThunkAbi()) {
     return HSA_STATUS_ERROR_INVALID_ARGUMENT;
   }

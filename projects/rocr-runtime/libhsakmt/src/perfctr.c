@@ -84,6 +84,7 @@ struct hsa_kfd_perf_context
 	unsigned int counter_props_count;
 };
 
+
 int hsakmt_kfdcontext_init_perf_context(HsaKFDContext *ctx)
 {
 	CHECK_CTX(ctx, -1);
@@ -783,6 +784,7 @@ HSAKMT_STATUS HSAKMTAPI hsaKmtPmcRegisterTraceCtx(HsaKFDContext* ctx,
 	pr_warn_once("not supported\n");
 	return HSAKMT_STATUS_NOT_SUPPORTED;
 }
+#error "I EXIST"
 
 HSAKMT_STATUS HSAKMTAPI hsaKmtPmcUnregisterTraceCtx(HsaKFDContext* ctx,
 						 HSAuint32 NodeId,

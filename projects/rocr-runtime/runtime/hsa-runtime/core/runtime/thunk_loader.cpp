@@ -79,7 +79,8 @@ namespace core {
 
 #if defined(__FreeBSD__)
     is_dtif_ = is_dxg_ = false;
-    return "libhsakmt.so";
+    return "";
+    // return "libhsakmt.so";
 #else
     return "";
 #endif
