@@ -63,6 +63,9 @@
 #include <sstream>
 #include <string>
 
+#include "amd_freebsd.h"
+
+
 namespace {
 
 #if !defined(_WIN32) && !defined(_WIN64)

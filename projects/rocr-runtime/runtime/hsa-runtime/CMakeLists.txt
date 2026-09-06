@@ -49,7 +49,7 @@ unset ( hsa-runtime64_LIB_DEPENDS CACHE )
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 if (UNIX)
-  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD 20)
 else()
   set(CMAKE_CXX_STANDARD 20)
 endif()
@@ -261,16 +261,20 @@ set ( SRCS core/driver/driver.cpp
            libamdhsacode/amd_options.cpp
            libamdhsacode/amd_hsa_code.cpp)
 
-if(UNIX)
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+  # FreeBSD-specific source definitions
+  set(SRC_OS core/util/freebsd/os_freebsd.cpp) # Replace/adjust with your FreeBSD OS file if available
+  # SRC_XDNA is intentionally left unset so XDNA files are not built
+elseif(UNIX)
   set(SRC_OS core/util/lnx/os_linux.cpp
-	     libamdhsacode/lnx/amd_core_dump.cpp)
+             libamdhsacode/lnx/amd_core_dump.cpp)
   set(SRC_XDNA core/driver/xdna/amd_xdna_driver.cpp
                core/runtime/amd_aie_agent.cpp
                core/runtime/amd_aie_aql_queue.cpp)
 else()
   target_compile_definitions(${CORE_RUNTIME_TARGET} PRIVATE NOMINMAX)
   set(SRC_OS core/util/win/os_win.cpp
-	     libamdhsacode/win32/amd_core_dump.cpp)
+             libamdhsacode/win32/amd_core_dump.cpp)
 endif()
 
 if ( BUILD_THUNK_VIRTIO )

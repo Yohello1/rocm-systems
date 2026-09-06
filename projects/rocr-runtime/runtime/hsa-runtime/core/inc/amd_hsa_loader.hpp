@@ -64,6 +64,10 @@
 #define __lseek__ lseek
 #endif  // _WIN32 || _WIN64
 
+#ifdef __FreeBSD__
+#include "amd_freebsd.h"
+#endif
+
 /// @brief Major version of the AMD HSA Loader. Major versions are not backwards
 /// compatible.
 #define AMD_HSA_LOADER_VERSION_MAJOR 0

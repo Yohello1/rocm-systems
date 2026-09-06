@@ -52,6 +52,8 @@
 #include "core/inc/hsa_internal.h"
 #include "core/util/utils.h"
 
+#include "amd_freebsd.h"
+
 namespace rocr {
 namespace AMD {
 

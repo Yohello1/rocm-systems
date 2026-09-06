@@ -190,6 +190,8 @@ else()
                      "src/extsem.c")
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
       list(APPEND HSAKMT_SRC "src/perfctr.c" "src/pmc_table.c")
+    elseif (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+      list(APPEND HSAKMT_SRC "src/freebsd/perfctr.c")
     endif()
   endif()
 
@@ -215,6 +217,8 @@ else()
   endif()
 
   if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    target_include_directories( ${HSAKMT_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/hsakmt/linux )
+  elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
     target_include_directories( ${HSAKMT_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/hsakmt/linux )
   endif()
 
@@ -489,7 +493,9 @@ else()
     add_library (${HSAKMT_STATIC_DRM_TARGET}  STATIC "")
     target_sources (${HSAKMT_STATIC_DRM_TARGET} PRIVATE ${HSAKMT_SRC})
 
-    if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+      target_include_directories( ${HSAKMT_STATIC_DRM_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/hsakmt/freebsd )
+    elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
       target_include_directories( ${HSAKMT_STATIC_DRM_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/hsakmt/linux )
     endif()
 

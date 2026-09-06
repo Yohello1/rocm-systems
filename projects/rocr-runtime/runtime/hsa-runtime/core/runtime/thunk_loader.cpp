@@ -85,6 +85,14 @@ std::string GetAdjacentThunkLibraryPath(const std::string& library_name) {
     is_win_dxg_ = true;
 #endif
 
+#if defined(__FreeBSD__)
+    is_dtif_ = is_win_dxg_ false;
+    return "";
+#else
+    return "";
+#endif
+
+
     return "";
   }
 

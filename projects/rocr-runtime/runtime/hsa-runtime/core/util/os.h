@@ -74,6 +74,8 @@ static __forceinline std::underlying_type<os_t>::type os_index(os_t val) {
 static const os_t current_os = os_t::OS_WIN;
 #elif __linux__
 static const os_t current_os = os_t::OS_LINUX;
+#elif __FreeBSD__
+static const os_t current_os = os_t::OS_FREEBSD;
 #else
 static_assert(false, "Operating System not detected!");
 #endif
