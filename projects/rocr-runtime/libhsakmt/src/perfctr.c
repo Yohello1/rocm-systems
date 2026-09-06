@@ -85,7 +85,7 @@ struct hsa_kfd_perf_context
 };
 
 
-int hsakmt_kfdcontext_init_perf_context(HsaKFDContext *ctx)
+__attribute__((visibility("default"))) int hsakmt_kfdcontext_init_perf_context(HsaKFDContext *ctx)
 {
 	CHECK_CTX(ctx, -1);
 
