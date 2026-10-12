@@ -82,7 +82,8 @@ struct hsa_kfd_perf_context
 	unsigned int counter_props_count;
 };
 
-int hsakmt_kfdcontext_init_perf_context(HsaKFDContext *ctx)
+
+__attribute__((visibility("default"))) int hsakmt_kfdcontext_init_perf_context(HsaKFDContext *ctx)
 {
 	CHECK_CTX(ctx, -1);
 

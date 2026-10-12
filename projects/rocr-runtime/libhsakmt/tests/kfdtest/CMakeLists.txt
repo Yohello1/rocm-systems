@@ -230,8 +230,11 @@ include_directories(${PROJECT_SOURCE_DIR}/../../libhsakmt/include)
 
 include_directories(${DRM_INCLUDE_DIRS})
 
-# Platform specific includes (i.e kfd_ioct.h on Linux)
-if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+# Platform specific includes: each OS has its own copy of the KFD ioctl ABI
+# (kfd_ioctl.h), matching what libhsakmt itself puts on its private include path.
+if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+      include_directories(${PROJECT_SOURCE_DIR}/../../include/hsakmt/freebsd)
+elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
       include_directories(${PROJECT_SOURCE_DIR}/../../include/hsakmt/linux)
 endif()
 

@@ -45,7 +45,7 @@
 #include <cinttypes>
 #include <cstdint>
 #include <algorithm>
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
 #include <sys/eventfd.h>
 #include <poll.h>
 #else

@@ -72,7 +72,9 @@ std::string GetAdjacentThunkLibraryPath(const std::string& library_name) {
 #endif
     }
 
-#if defined(__linux__)
+#if defined(_WIN32)
+    is_win_dxg_ = true;
+#elif defined(__linux__)
     if (core::Runtime::runtime_singleton_->flag().enable_dxg_detection()) {
       int fd = open("/dev/dxg", O_RDWR);
       if (fd >= 0) {
@@ -81,10 +83,10 @@ std::string GetAdjacentThunkLibraryPath(const std::string& library_name) {
         return "librocdxg.so";
       }
     }
-#else
-    is_win_dxg_ = true;
 #endif
 
+    // No separate thunk library: libhsakmt is linked in and LoadThunkApiTable()
+    // binds the API table to its symbols directly.
     return "";
   }
 

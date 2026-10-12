@@ -47,7 +47,7 @@
 #include <cstring>
 #include <regex>
 #include <string>
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
 #include <link.h>
 #include <dlfcn.h>
 #include <amdgpu_drm.h>
@@ -109,7 +109,7 @@ extern "C" void __sanitizer_purge_allocator(void);
 ROCPROFILER_REGISTER_DEFINE_IMPORT(hsa, ROCP_REG_VERSION)
 #endif
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
 const char rocrbuildid[] __attribute__((used)) = "ROCR BUILD ID: " STRING(ROCR_BUILD_ID);
 #else
 #include "loader/executable.hpp"
@@ -2640,8 +2640,15 @@ Runtime::Runtime()
   xnack_enabled_ = false;
   g_use_interrupt_wait = true;
   g_use_mwaitx = true;
-  ::_amdgpu_r_debug = {11, nullptr, reinterpret_cast<uintptr_t>(&_loader_debug_state),
-                       r_debug::RT_CONSISTENT, 0};
+  // Assigned field by field rather than brace-initialised: glibc types r_brk
+  // and r_ldbase as integers while FreeBSD types them as a function pointer and
+  // a void*, so no single braced initialiser is valid on both.
+  ::_amdgpu_r_debug.r_version = 11;
+  ::_amdgpu_r_debug.r_map = nullptr;
+  ::_amdgpu_r_debug.r_brk =
+      reinterpret_cast<decltype(::_amdgpu_r_debug.r_brk)>(&_loader_debug_state);
+  ::_amdgpu_r_debug.r_state = r_debug::RT_CONSISTENT;
+  ::_amdgpu_r_debug.r_ldbase = 0;
   log_file = stderr;
 }
 
@@ -2666,7 +2673,7 @@ hsa_status_t Runtime::Load() {
     return HSA_STATUS_ERROR_NOT_INITIALIZED;
   }
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
   if (!thunkLoader_->CheckThunkAbi()) {
     return HSA_STATUS_ERROR_INVALID_ARGUMENT;
   }
@@ -2727,8 +2734,9 @@ hsa_status_t Runtime::Load() {
   // Initialize IPC support mode
   InitIPCDmaBufSupport();
 
-  // Load svm profiler (Linux-only: relies on KFD SMI events via poll/eventfd)
-#if defined(__linux__)
+  // Load svm profiler (needs KFD SMI events via poll/eventfd, which both Linux
+  // and FreeBSD provide)
+#if defined(__linux__) || defined(__FreeBSD__)
   svm_profile_.reset(new AMD::SvmProfileControl);
 #else
   if (!flag_.svm_profile().empty()) {
@@ -3027,9 +3035,16 @@ void Runtime::LoadTools() {
   if (tool_names != "") {
     names = parse_tool_names(std::move(tool_names));
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
+#if defined(__FreeBSD__)
+    // issetugid() is FreeBSD's equivalent of glibc's AT_SECURE: it reports
+    // whether the process started with elevated privileges, which already
+    // subsumes the euid/egid comparisons below.
+    const bool secure = issetugid() != 0;
+#else
     const bool secure =
         (geteuid() != getuid()) || (getegid() != getgid()) || (getauxval(AT_SECURE) != 0);
+#endif
     if (secure) {
       if (!names.empty() && flag().report_tool_load_failures())
         fprintf(stderr,

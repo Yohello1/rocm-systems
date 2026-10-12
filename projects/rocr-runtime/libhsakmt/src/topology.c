@@ -35,7 +35,6 @@
 #include <limits.h>
 
 #include <errno.h>
-#include <sys/sysinfo.h>
 #include <xf86drm.h>
 #include <amdgpu.h>
 #include <amdgpu_drm.h>
@@ -2051,7 +2050,8 @@ HSAKMT_STATUS topology_take_snapshot(HsaKFDContext *ctx)
 	node_props_t *temp_props = 0;
 	HSAKMT_STATUS ret = HSAKMT_STATUS_SUCCESS;
 	struct proc_cpuinfo *cpuinfo;
-	const uint32_t num_procs = get_nprocs();
+	/* POSIX equivalent of glibc's get_nprocs(), which FreeBSD lacks. */
+	const uint32_t num_procs = sysconf(_SC_NPROCESSORS_ONLN);
 	uint32_t num_ioLinks;
 	bool p2p_links = false;
 	uint32_t num_p2pLinks = 0;

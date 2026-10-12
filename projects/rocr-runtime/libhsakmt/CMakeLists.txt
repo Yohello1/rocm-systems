@@ -188,8 +188,12 @@ else()
                      "src/ais.c"
                      "src/kfdcontext.c"
                      "src/extsem.c")
+    ## The performance counter backend is OS specific: Linux drives it through
+    ## perf_event_open(2), FreeBSD has no equivalent yet and uses stubs.
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
       list(APPEND HSAKMT_SRC "src/perfctr.c" "src/pmc_table.c")
+    elseif (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+      list(APPEND HSAKMT_SRC "src/freebsd/perfctr.c")
     endif()
   endif()
 
@@ -200,7 +204,17 @@ else()
   target_sources ( ${HSAKMT_TARGET} PRIVATE ${HSAKMT_SRC} )
 
   if (UNIX)
+    ## The KFD ioctl ABI differs per kernel, so each OS keeps its own copy of
+    ## kfd_ioctl.h / udmabuf.h under include/hsakmt/<os>/.  Exactly one of those
+    ## directories goes on the private include path, which lets the sources say
+    ## #include "kfd_ioctl.h" without naming a platform.  Neither directory is
+    ## installed (see the install(DIRECTORY ...) rule below).
     set(EXTRA_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+      list(APPEND EXTRA_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include/hsakmt/freebsd)
+    elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
+      list(APPEND EXTRA_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include/hsakmt/linux)
+    endif()
   else()
     set(EXTRA_INCLUDE_DIRS 
       ${DK_HEADER}/ms_sdk/include/shared
@@ -212,10 +226,6 @@ else()
       ${CMAKE_CURRENT_SOURCE_DIR}/../runtime
       ${CMAKE_CURRENT_SOURCE_DIR}/../runtime/hsa-runtime/core
       ${CMAKE_CURRENT_SOURCE_DIR}/../runtime/hsa-runtime)
-  endif()
-
-  if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    target_include_directories( ${HSAKMT_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/hsakmt/linux )
   endif()
 
   ## Add headers.  The public headers need to point at their location in both build and install
@@ -353,6 +363,18 @@ else()
       target_compile_definitions(${HSAKMT_TARGET} PRIVATE -DHAVE_GETAUXVAL=1)
     endif()
 
+    # The vendored include/hsakmt/drm/amdgpu_drm.h carries its own copy of
+    # struct drm_color_ctm_3x4, guarded by HAVE_DRM_COLOR_CTM_3X4, because older
+    # libdrm releases lack it.  Newer libdrm (FreeBSD's port, for one) declares
+    # it in drm_mode.h, and defining it twice is an error, so probe for it.
+    include(CheckStructHasMember)
+    set(CMAKE_REQUIRED_INCLUDES ${DRM_INCLUDE_DIRS} ${DRM_AMDGPU_INCLUDE_DIRS})
+    check_struct_has_member("struct drm_color_ctm_3x4" matrix "drm_mode.h"
+                            HAVE_DRM_COLOR_CTM_3X4 LANGUAGE C)
+    if(HAVE_DRM_COLOR_CTM_3X4)
+      target_compile_definitions(${HSAKMT_TARGET} PRIVATE -DHAVE_DRM_COLOR_CTM_3X4=1)
+    endif()
+
     # Trusted search path for HSA_MODEL_LIB dlopen (see hsakmtmodel.c).
     set(HSAKMT_INSTALL_LIBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
     target_compile_definitions(${HSAKMT_TARGET} PRIVATE
@@ -418,7 +440,7 @@ else()
   endif()
   # Install public headers
   install ( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/${HSAKMT_TARGET} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    COMPONENT dev PATTERN "linux" EXCLUDE PATTERN "*virtio*" EXCLUDE)
+    COMPONENT dev PATTERN "linux" EXCLUDE PATTERN "freebsd" EXCLUDE PATTERN "*virtio*" EXCLUDE)
 
   # Record our usage data for clients find_package calls. On Windows, this is
   # only relocatable for the prebuilt WKMI path because that path installs
@@ -489,10 +511,6 @@ else()
     add_library (${HSAKMT_STATIC_DRM_TARGET}  STATIC "")
     target_sources (${HSAKMT_STATIC_DRM_TARGET} PRIVATE ${HSAKMT_SRC})
 
-    if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-      target_include_directories( ${HSAKMT_STATIC_DRM_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include/hsakmt/linux )
-    endif()
-
     target_include_directories( ${HSAKMT_STATIC_DRM_TARGET}
       PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -533,6 +551,9 @@ else()
     if(UNIX)
       if(HAVE_GETAUXVAL)
         target_compile_definitions(${HSAKMT_STATIC_DRM_TARGET} PRIVATE -DHAVE_GETAUXVAL=1)
+      endif()
+      if(HAVE_DRM_COLOR_CTM_3X4)
+        target_compile_definitions(${HSAKMT_STATIC_DRM_TARGET} PRIVATE -DHAVE_DRM_COLOR_CTM_3X4=1)
       endif()
       target_compile_definitions(${HSAKMT_STATIC_DRM_TARGET} PRIVATE
         "HSAKMT_INSTALL_LIBDIR=\"${HSAKMT_INSTALL_LIBDIR}\"")
