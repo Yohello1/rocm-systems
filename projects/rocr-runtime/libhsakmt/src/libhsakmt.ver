@@ -114,6 +114,10 @@ hsaKmtMemoryCpuMap;
 hsaKmtSetSigbusDelay;
 hsaKmtGetAmdGPUDeviceFd;
 hsaKmtSetPersistingCacheSize;
+hsaKmtCreateQueueExt;
+hsaKmtCreateQueueV2;
+hsaKmtModelEnabled;
+hsaKmtRegisterGraphicsHandleToNodesExt;
 local: *;
 };
 

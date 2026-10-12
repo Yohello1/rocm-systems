@@ -62,7 +62,12 @@
 #include "./amd_hsa_code_util.hpp"
 #include "core/inc/amd_core_dump.hpp"
 #include "hsakmt/hsakmt.h"
+// The KFD ioctl ABI differs per kernel; libhsakmt keeps one copy per OS.
+#if defined(__FreeBSD__)
+#include "hsakmt/freebsd/kfd_ioctl.h"
+#else
 #include "hsakmt/linux/kfd_ioctl.h"
+#endif
 #include "core/inc/amd_gpu_agent.h"
 #include "core/inc/amd_aql_queue.h"
 
