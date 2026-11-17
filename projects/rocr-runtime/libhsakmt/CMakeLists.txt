@@ -195,6 +195,15 @@ else()
     elseif (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
       list(APPEND HSAKMT_SRC "src/freebsd/perfctr.c")
     endif()
+    ## The device-info ("dinfo") backend is OS specific too: Linux reads
+    ## /sys/devices/virtual/kfd, FreeBSD has no sysfs tree and reads the
+    ## equivalent sysctl(3) MIB instead (stub pending the kernel side).
+    ## See src/topology_dinfo.h for the shared contract.
+    if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+      list(APPEND HSAKMT_SRC "src/linux/topology_dinfo.cpp")
+    elseif (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+      list(APPEND HSAKMT_SRC "src/freebsd/topology_dinfo.cpp")
+    endif()
   endif()
 
   ## Declare the library target name
