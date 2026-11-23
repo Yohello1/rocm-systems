@@ -48,6 +48,9 @@
 #include <thread>
 #if !defined(_WIN32)
 #include <sys/syscall.h>
+#if defined(__FreeBSD__)
+#include <pthread_np.h>
+#endif
 #include <unistd.h>
 #endif
 #include <map>
@@ -2644,7 +2647,11 @@ hipApiRecordExt* HipGetActiveRecordExt(uint32_t api_id) {
   static thread_local uint64_t cached_tid = static_cast<uint64_t>(GetCurrentThreadId());
   rec->thread_id   = cached_tid;
 #else
+#if defined(__FreeBSD__)
+  static thread_local uint64_t cached_tid = static_cast<uint64_t>(pthread_getthreadid_np());
+#else
   static thread_local uint64_t cached_tid = static_cast<uint64_t>(syscall(SYS_gettid));
+#endif
   rec->thread_id   = cached_tid;
 #endif
 
