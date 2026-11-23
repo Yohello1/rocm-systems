@@ -38,6 +38,17 @@ if (AMD_COMPUTE_WIN)
     message("Public Compute Windows build path: ${AMD_COMPUTE_WIN}, SC: ${AMD_SC_PATH}, LibElf: ${AMD_LIBELF_PATH}")
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    # Third-party headers (GL, X11, libdrm, ...) live in /usr/local on FreeBSD.
+    include_directories(SYSTEM /usr/local/include)
+    link_directories(/usr/local/lib)
+    # FreeBSD's rtld applies DT_RUNPATH only to an object's own dependencies,
+    # so libamdhip64 must find libhsa-runtime64/libamd_comgr next to itself.
+    if(NOT CMAKE_INSTALL_RPATH)
+        set(CMAKE_INSTALL_RPATH "\$ORIGIN")
+    endif()
+endif()
+
 option(CLR_BUILD_HIP "Build HIP" OFF)
 option(CLR_BUILD_OCL "Build OCL" OFF)
 

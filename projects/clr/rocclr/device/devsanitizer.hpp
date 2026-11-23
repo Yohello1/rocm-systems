@@ -85,7 +85,7 @@ void handleSanitizerService(Payload* packt_payload, uint64_t activemask,
     loadAddrAdjust = uri_info.loadAddressDiff;
   }
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
   __asan_report_nonself_error(callstack, 1, device_failing_addresses, n_activelanes, entity_id,
                               n_activelanes + 4, is_write, access_size, is_abort,
                               /*thread key*/ "amdgpu", loadAddrAdjust, uri_fd, size, offset);

@@ -18,7 +18,19 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#if defined(__FreeBSD__)
+#include <sys/sysctl.h>
+#include <sys/user.h>
+#include <sys/cpuset.h>
+#include <pthread_np.h>
+#include <sched.h>
+#include <libgen.h>
+#ifndef MAP_NORESERVE
+#define MAP_NORESERVE 0
+#endif
+#else
 #include <sys/sysinfo.h>
+#endif
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -26,7 +38,9 @@
 #include <signal.h>
 #include <cxxabi.h>
 
+#if !defined(__FreeBSD__)
 #include <sys/prctl.h>
+#endif
 #include <sys/resource.h>
 
 #include <link.h>
@@ -56,10 +70,33 @@ thread_local uint32_t runtime_set_affinity_node = static_cast<uint32_t>(-1);
 thread_local std::vector<uint64_t> original_affinity_mask;
 thread_local bool original_affinity_mask_valid = false;
 
+#if defined(__FreeBSD__)
+// FreeBSD has Linux-compatible sched_{get,set}affinity() in libc, but no raw syscalls.
+// The cpuset must be at least as large as the kernel's, so always use a full cpuset_t.
+static long fbsd_sched_getaffinity(size_t size, void* mask) {
+  cpuset_t set;
+  CPU_ZERO(&set);
+  if (sched_getaffinity(0, sizeof(set), &set) != 0) return -1;
+  std::memcpy(mask, &set, std::min(size, sizeof(set)));
+  return 0;
+}
+static long fbsd_sched_setaffinity(size_t size, const void* mask) {
+  cpuset_t set;
+  CPU_ZERO(&set);
+  std::memcpy(&set, mask, std::min(size, sizeof(set)));
+  return sched_setaffinity(0, sizeof(set), &set);
+}
+#define SCHED_GETAFFINITY(size, mask) fbsd_sched_getaffinity((size), (mask))
+#define SCHED_SETAFFINITY(size, mask) fbsd_sched_setaffinity((size), (mask))
+#else
+#define SCHED_GETAFFINITY(size, mask) syscall(__NR_sched_getaffinity, 0, (size), (mask))
+#define SCHED_SETAFFINITY(size, mask) syscall(__NR_sched_setaffinity, 0, (size), (mask))
+#endif
+
 bool GetCurrentThreadAffinity(std::vector<uint64_t>* affinity) {
   const uint32_t size = CPU_ALLOC_SIZE(amd::Os::processorCount());
   affinity->assign((size + sizeof(uint64_t) - 1) / sizeof(uint64_t), 0);
-  if (syscall(__NR_sched_getaffinity, 0, size, affinity->data()) < 0) {
+  if (SCHED_GETAFFINITY(size, affinity->data()) < 0) {
     ClPrint(amd::LOG_DEBUG, amd::LOG_RESOURCE,
             "syscall(__NR_sched_getaffinity, size=%u) failed", size);
     return false;
@@ -69,7 +106,7 @@ bool GetCurrentThreadAffinity(std::vector<uint64_t>* affinity) {
 
 bool SetCurrentThreadAffinity(const std::vector<uint64_t>& affinity) {
   const uint32_t size = static_cast<uint32_t>(affinity.size() * sizeof(uint64_t));
-  if (syscall(__NR_sched_setaffinity, 0, size, affinity.data()) < 0) {
+  if (SCHED_SETAFFINITY(size, affinity.data()) < 0) {
     ClPrint(amd::LOG_DEBUG, amd::LOG_RESOURCE,
             "syscall(__NR_sched_setaffinity, size=%u) failed", size);
     return false;
@@ -188,7 +225,11 @@ static void divisionErrorHandler(int sig, siginfo_t* info, void* ptr) {
   address insn;
 
 #if defined(ATI_ARCH_X86)
+#if defined(__FreeBSD__)
+  insn = (address)uc->uc_mcontext.mc_rip;
+#else
   insn = (address)uc->uc_mcontext.gregs[LP64_SWITCH(REG_EIP, REG_RIP)];
+#endif
 #else
   assert(!"Unimplemented");
 #endif
@@ -196,7 +237,11 @@ static void divisionErrorHandler(int sig, siginfo_t* info, void* ptr) {
   if (Thread::current()->isWorkerThread()) {
     if (Os::skipIDIV(insn)) {
 #if defined(ATI_ARCH_X86)
+#if defined(__FreeBSD__)
+      uc->uc_mcontext.mc_rip = (register_t)insn;
+#else
       uc->uc_mcontext.gregs[LP64_SWITCH(REG_EIP, REG_RIP)] = (greg_t)insn;
+#endif
 #else
       assert(!"Unimplemented");
 #endif
@@ -295,7 +340,7 @@ address Os::reserveMemory(address start, size_t size, size_t alignment, MemProt 
 
   size_t requested = size + alignment - pageSize();
   address mem = (address)::mmap(start, requested, memProtToOsProt(prot),
-                                MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS, 0, 0);
+                                MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS, -1, 0);
 
   // check for out of memory
   if (mem == MAP_FAILED) return NULL;
@@ -318,6 +363,7 @@ address Os::reserveMemory(address start, size_t size, size_t alignment, MemProt 
   }
 
   // Hint to enable THP for large host allocations which can help in performance gain
+#if defined(MADV_HUGEPAGE)
   constexpr size_t kLargePageSize = 2 * Mi;
   if (size >= kLargePageSize) {
     int status = madvise(aligned, size, MADV_HUGEPAGE);
@@ -328,6 +374,7 @@ address Os::reserveMemory(address start, size_t size, size_t alignment, MemProt 
               aligned, size, status, strerror(errno));
     }
   }
+#endif
 
   return aligned;
 }
@@ -392,7 +439,12 @@ void Os::currentStackInfo(address* base, size_t* size) {
   pthread_t self = ::pthread_self();
 
   pthread_attr_t threadAttr;
+#if defined(__FreeBSD__)
+  ::pthread_attr_init(&threadAttr);
+  if (0 != ::pthread_attr_get_np(self, &threadAttr)) {
+#else
   if (0 != ::pthread_getattr_np(self, &threadAttr)) {
+#endif
     fatal("pthread_getattr_np() failed");
   }
 
@@ -407,7 +459,11 @@ void Os::currentStackInfo(address* base, size_t* size) {
          "just checking");
 }
 
+#if defined(__FreeBSD__)
+void Os::setCurrentThreadName(const char* name) { ::pthread_setname_np(::pthread_self(), name); }
+#else
 void Os::setCurrentThreadName(const char* name) { ::prctl(PR_SET_NAME, name); }
+#endif
 
 void* Thread::entry(Thread* thread) {
   sigset_t set;
@@ -779,6 +835,14 @@ address Os::currentStackPtr() {
 }
 
 size_t Os::getPhysicalMemSize() {
+#if defined(__FreeBSD__)
+  unsigned long physmem = 0;
+  size_t len = sizeof(physmem);
+  if (sysctlbyname("hw.physmem", &physmem, &len, nullptr, 0) != 0) {
+    return 0;
+  }
+  return (size_t)physmem;
+#else
   struct ::sysinfo si;
 
   if (::sysinfo(&si) != 0) {
@@ -791,12 +855,19 @@ size_t Os::getPhysicalMemSize() {
   }
 
   return (size_t)si.totalram * si.mem_unit;
+#endif
 }
 
 void Os::getAppPathAndFileName(std::string& appName, std::string& appPathAndName) {
   std::unique_ptr<char[]> buff(new char[FILE_PATH_MAX_LENGTH]());
 
+#if defined(__FreeBSD__)
+  int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
+  size_t len = FILE_PATH_MAX_LENGTH - 1;
+  if (sysctl(mib, 4, buff.get(), &len, nullptr, 0) == 0 && buff[0] != '\0') {
+#else
   if (readlink("/proc/self/exe", buff.get(), FILE_PATH_MAX_LENGTH) > 0) {
+#endif
     // Get filename without path and extension.
     appName = std::string(basename(buff.get()));
     appPathAndName = std::string(buff.get());
@@ -853,6 +924,33 @@ bool amd::Os::FindFileNameFromAddress(const void* image, std::string* fname_ptr,
                                       size_t* foffset_ptr) {
   // Get the list of mapped file list
   bool ret_value = false;
+#if defined(__FreeBSD__)
+  int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_VMMAP, (int)getpid()};
+  size_t len = 0;
+  if (sysctl(mib, 4, nullptr, &len, nullptr, 0) != 0) {
+    return ret_value;
+  }
+  len = len * 4 / 3;
+  std::vector<char> buf(len);
+  if (sysctl(mib, 4, buf.data(), &len, nullptr, 0) != 0) {
+    return ret_value;
+  }
+  uintptr_t address = reinterpret_cast<uintptr_t>(image);
+  for (size_t off = 0; off < len;) {
+    const struct kinfo_vmentry* kve = reinterpret_cast<const struct kinfo_vmentry*>(&buf[off]);
+    if (kve->kve_structsize == 0) break;
+    if (address >= kve->kve_start && address < kve->kve_end) {
+      if (kve->kve_type != KVME_TYPE_VNODE || kve->kve_path[0] == '\0') {
+        return ret_value;
+      }
+      *fname_ptr = kve->kve_path;
+      *foffset_ptr = kve->kve_offset + address - kve->kve_start;
+      return true;
+    }
+    off += kve->kve_structsize;
+  }
+  return ret_value;
+#else
   std::ifstream proc_maps;
   proc_maps.open("/proc/self/maps", std::ifstream::in);
   if (!proc_maps.is_open() || !proc_maps.good()) {
@@ -892,6 +990,7 @@ bool amd::Os::FindFileNameFromAddress(const void* image, std::string* fname_ptr,
   }
 
   return ret_value;
+#endif
 }
 
 bool Os::MemoryMapFileDesc(FileDesc fdesc, size_t fsize, size_t foffset, const void** mmap_ptr) {
@@ -1044,11 +1143,16 @@ namespace numa {
 
 // ================================================================================================
 uint32_t getCurrentNumaNode() {
+#if defined(__FreeBSD__)
+  // TODO: use domainset/vm.ndomains; Strix Halo and most desktops have one domain.
+  return 0;
+#else
   unsigned cpu, node;
   if (syscall(__NR_getcpu, &cpu, &node, nullptr) < 0) {
     return static_cast<uint32_t>(-1);
   }
   return static_cast<uint32_t>(node);
+#endif
 }
 
 // ================================================================================================
@@ -1058,6 +1162,11 @@ NumaPolicy::NumaPolicy(const uint32_t numa_node_count) :
 // ================================================================================================
 bool NumaPolicy::GetMemPolicy() {
   int policy = 0;
+#if defined(__FreeBSD__)
+  // No get_mempolicy() on FreeBSD: report the default policy.
+  policy_ = static_cast<Policy>(policy);
+  return true;
+#else
   if (syscall(__NR_get_mempolicy, &policy, node_map_.data(),
       node_map_.size() * kBitsPerUInt64, nullptr, 0) < 0) {
     ClPrint(amd::LOG_DEBUG, amd::LOG_RESOURCE,
@@ -1072,6 +1181,7 @@ bool NumaPolicy::GetMemPolicy() {
   }
   policy_ = static_cast<Policy>(policy);
   return true;
+#endif
 }
 
 // ================================================================================================
@@ -1137,7 +1247,7 @@ bool NumaNode::SchedSetAffinity() {
   if (!GetAffinity()) {
     return false;
   }
-  if (syscall(__NR_sched_setaffinity, 0, size_,
+  if (SCHED_SETAFFINITY(size_,
               static_cast<std::vector<uint64_t>*>(affinity_)->data()) < 0) {
     ClPrint(amd::LOG_DEBUG, amd::LOG_RESOURCE,
             "syscall(__NR_sched_setaffinity, size=%u) failed", size_);

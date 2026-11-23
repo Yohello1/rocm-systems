@@ -28,7 +28,7 @@ namespace amd::activity_prof {
 extern std::atomic<int (*)(activity_domain_t domain, uint32_t operation_id, void* data)>
     report_activity;
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
 extern __thread activity_correlation_id_t correlation_id __attribute__((tls_model("initial-exec")));
 #elif defined(_WIN32)
 extern __declspec(thread) activity_correlation_id_t correlation_id;

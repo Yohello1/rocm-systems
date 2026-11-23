@@ -62,6 +62,10 @@ const char* removeQuotes(const char* Value) {
 }
 }  // namespace
 
+#if defined(__FreeBSD__)
+extern char** environ;
+#endif
+
 namespace amd {
 
 #ifdef __APPLE__
