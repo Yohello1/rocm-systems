@@ -37,7 +37,7 @@ class Os : AllStatic {
   enum MemProt { MEM_PROT_NONE = 0, MEM_PROT_READ, MEM_PROT_RW, MEM_PROT_RWX };
 
   static FileDesc FDescInit() {
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
     return -1;
 #else
     return reinterpret_cast<void*>(-1);

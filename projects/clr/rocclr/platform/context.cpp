@@ -146,7 +146,7 @@ int Context::checkProperties(const cl_context_properties* properties, Context::I
       case CL_WGL_HDC_KHR:
 #endif  //_WIN32
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
       case CL_GLX_DISPLAY_KHR:
 #endif  // linux
         if (p->ptr == NULL) {

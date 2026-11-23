@@ -802,7 +802,7 @@ hipError_t ihipGetDeviceProperties(hipDeviceProp_t* props, int device) {
   deviceProps.memoryPoolsSupported = HIP_MEM_POOL_SUPPORT;
   unsigned int memPoolHandleType = 0;
   if (HIP_MEM_POOL_SUPPORT) {
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
     memPoolHandleType |= hipMemHandleTypePosixFileDescriptor;
 #elif defined(_WIN32)
     memPoolHandleType |= hipMemHandleTypeWin32;

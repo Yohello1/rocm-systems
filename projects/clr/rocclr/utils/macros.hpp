@@ -65,7 +65,7 @@
 #endif /*!_LP64*/
 #define LP64_SWITCH(lp32, lp64) NOT_LP64(lp32) LP64_ONLY(lp64)
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
 #define IS_LINUX true
 #define LINUX_ONLY(x) x
 #define NOT_LINUX(x)

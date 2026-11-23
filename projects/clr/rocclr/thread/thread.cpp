@@ -101,7 +101,7 @@ void Thread::resume() {
   selfSuspendLock_->notify();
 }
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
 
 namespace details {
 
