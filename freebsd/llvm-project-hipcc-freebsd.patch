@@ -1,0 +1,116 @@
+From 27902891420c44eb3652af10f8626325dd11faad Mon Sep 17 00:00:00 2001
+From: Yohel <siri@racha.ca>
+Date: Mon, 23 Nov 2026 14:49:35 -0500
+Subject: [PATCH] hipcc, clang-linker-wrapper: FreeBSD support
+
+- hipcc: sys/wait.h, KERN_PROC_PATHNAME self path, no libstdc++fs,
+  link -lamdhip64 (+rpath) for --hip-link since clang's FreeBSD
+  toolchain does not add the HIP runtime
+- clang-linker-wrapper: pass a four-component host triple to
+  clang-offload-bundler (x86_64-unknown-freebsd16.0 was rejected)
+---
+ amd/hipcc/CMakeLists.txt                              |  9 +++++++--
+ amd/hipcc/src/hipBin_amd.h                            | 10 ++++++++++
+ amd/hipcc/src/hipBin_util.h                           |  1 +
+ amd/hipcc/src/utils.cpp                               | 11 +++++++++++
+ .../tools/clang-linker-wrapper/ClangLinkerWrapper.cpp |  3 ++-
+ 5 files changed, 31 insertions(+), 3 deletions(-)
+
+diff --git a/amd/hipcc/CMakeLists.txt b/amd/hipcc/CMakeLists.txt
+index 13714de17..dce159918 100755
+--- a/amd/hipcc/CMakeLists.txt
++++ b/amd/hipcc/CMakeLists.txt
+@@ -24,8 +24,13 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+ set(CMAKE_CXX_STANDARD 17)
+ set(CMAKE_CXX_STANDARD_REQUIRED True)
+ 
+-set(ADDITIONAL_SHARED_LIBRARIES_TO_LINK
+-  libstdc++fs.so)
++if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
++  # libc++ has std::filesystem built in; there is no libstdc++fs.
++  set(ADDITIONAL_SHARED_LIBRARIES_TO_LINK)
++else()
++  set(ADDITIONAL_SHARED_LIBRARIES_TO_LINK
++    libstdc++fs.so)
++endif()
+ 
+ set(HIPCC_BIN
+   hipcc)
+diff --git a/amd/hipcc/src/hipBin_amd.h b/amd/hipcc/src/hipBin_amd.h
+index 42bcd195e..7acf0a549 100644
+--- a/amd/hipcc/src/hipBin_amd.h
++++ b/amd/hipcc/src/hipBin_amd.h
+@@ -858,6 +858,16 @@ void HipBinAmd::executeHipCCCmd(vector<string> argv) {
+       HIPLDFLAGS += " -L" + hip_path;
+     }
+     HIPLDFLAGS += " --hip-link";
++#if defined(__FreeBSD__)
++    // clang's FreeBSD toolchain does not add the HIP runtime for --hip-link
++    // (only the Linux/MSVC toolchains do), so add it here.
++    {
++      fs::path rocmLib = roccmPath;
++      rocmLib /= "lib";
++      HIPLDFLAGS += " -L\"" + rocmLib.string() + "\" -Wl,-rpath,\"" +
++                    rocmLib.string() + "\" -lamdhip64";
++    }
++#endif
+     if (rdc) {
+       HIPLDFLAGS += HIPLDARCHFLAGS;
+     }
+diff --git a/amd/hipcc/src/hipBin_util.h b/amd/hipcc/src/hipBin_util.h
+index 6cefbe078..dcfa7d867 100644
+--- a/amd/hipcc/src/hipBin_util.h
++++ b/amd/hipcc/src/hipBin_util.h
+@@ -57,6 +57,7 @@ THE SOFTWARE.
+ #endif
+ #else
+ #include <unistd.h>
++#include <sys/wait.h>
+ #endif
+ 
+ using std::cout;
+diff --git a/amd/hipcc/src/utils.cpp b/amd/hipcc/src/utils.cpp
+index cc088ae99..f1c2623a6 100644
+--- a/amd/hipcc/src/utils.cpp
++++ b/amd/hipcc/src/utils.cpp
+@@ -1,4 +1,9 @@
+ #include "utils.h"
++#if defined(__FreeBSD__)
++#include <sys/types.h>
++#include <sys/sysctl.h>
++#include <cstring>
++#endif
+ #include "filesystem.h"
+ 
+ #if defined(_WIN32) || defined(_WIN64)
+@@ -34,7 +39,13 @@ std::string hipcc::utils::getSelfPath() {
+   path = std::string(wide.begin(), wide.end());
+ #else
+   char buff[MAX_PATH_CHAR];
++#if defined(__FreeBSD__)
++  int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
++  size_t blen = sizeof(buff) - 1;
++  ssize_t len = (::sysctl(mib, 4, buff, &blen, nullptr, 0) == 0) ? (ssize_t)strnlen(buff, blen) : -1;
++#else
+   ssize_t len = ::readlink("/proc/self/exe", buff, sizeof(buff) - 1);
++#endif
+   if (len > 0) {
+     buff[len] = '\0';
+     path = std::string(buff);
+diff --git a/clang/tools/clang-linker-wrapper/ClangLinkerWrapper.cpp b/clang/tools/clang-linker-wrapper/ClangLinkerWrapper.cpp
+index b6f42cb7d..b6345039a 100644
+--- a/clang/tools/clang-linker-wrapper/ClangLinkerWrapper.cpp
++++ b/clang/tools/clang-linker-wrapper/ClangLinkerWrapper.cpp
+@@ -478,7 +478,8 @@ fatbinary(ArrayRef<std::tuple<StringRef, StringRef, StringRef>> InputFiles,
+   llvm::Triple HostTriple(
+       Args.getLastArgValue(OPT_host_triple_EQ, sys::getDefaultTargetTriple()));
+   SmallVector<StringRef> Targets = {
+-      Saver.save("-targets=host-" + HostTriple.normalize())};
++      Saver.save("-targets=host-" +
++                 HostTriple.normalize(Triple::CanonicalForm::FOUR_IDENT))};
+   for (const auto &[File, TripleRef, Arch] : InputFiles) {
+     std::string NormalizedTriple =
+         normalizeForBundler(Triple(TripleRef), !Arch.empty());
+-- 
+2.56.0
+
