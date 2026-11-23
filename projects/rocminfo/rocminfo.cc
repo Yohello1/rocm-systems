@@ -1190,6 +1190,16 @@ AcquireAndDisplayAgentInfo(hsa_agent_t agent, void* data) {
 
 int CheckInitialState(void) {
   // Check kernel module for ROCk is loaded
+#if defined(__FreeBSD__)
+  // FreeBSD has no /sys/module; amdgpu (with KFD) is loaded iff /dev/kfd exists.
+  if (access("/dev/kfd", F_OK) != 0) {
+    printf("%sROCk module is NOT loaded (/dev/kfd missing), possibly no GPU devices%s\n",
+           COL_RED, COL_RESET);
+    return -1;
+  }
+  printf("%sROCk module is loaded%s\n", COL_WHT, COL_RESET);
+  return 0;
+#endif
 
   std::ifstream amdgpu_initstate("/sys/module/amdgpu/initstate");
   if (amdgpu_initstate){
