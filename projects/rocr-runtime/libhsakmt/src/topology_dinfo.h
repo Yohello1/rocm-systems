@@ -34,11 +34,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "libhsakmt.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* libhsakmt.h has no C++ guards of its own; without this the .cpp
+ * backends see its hsakmt_topology_dinfo_get_system_props() declaration
+ * with C++ linkage. */
+#include "libhsakmt.h"
 
 /* node_props_t / hsa_kfd_topology_context used to be defined privately in
  * topology.c. They moved here because topology_dinfo_map_node_id(),

@@ -85,7 +85,10 @@ else()
 
   ## Compiler flags
   if (UNIX)
-    set (HSAKMT_C_FLAGS -fPIC -W -Wall -Wextra -Wno-unused-parameter -Wformat-security -Wswitch-default -Wundef -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wunreachable-code -std=gnu99 -fvisibility=hidden)
+    set (HSAKMT_C_FLAGS -fPIC -W -Wall -Wextra -Wno-unused-parameter -Wformat-security -Wswitch-default -Wundef -Wshadow -Wpointer-arith -Wcast-qual -Wmissing-declarations -Wredundant-decls -Wunreachable-code -fvisibility=hidden)
+    ## C-only flags: the per-OS dinfo backends (src/<os>/topology_dinfo.cpp)
+    ## are C++, and clang rejects -std=gnu99 outright for C++ sources.
+    set (HSAKMT_C_ONLY_FLAGS -std=gnu99 -Wbad-function-cast -Wstrict-prototypes -Wmissing-prototypes)
 
     if ( CMAKE_COMPILER_IS_GNUCC )
       set ( HSAKMT_C_FLAGS "${HSAKMT_C_FLAGS}" -Wlogical-op)
@@ -281,6 +284,13 @@ else()
     # asserted here; the resolved path is deliberately not propagated.
     find_library(LIBC NAMES c REQUIRED)
     find_package(NUMA)
+    # Some NUMA package configs (e.g. the FreeBSD libnuma shim) only export
+    # the NUMA::numa imported target and never set NUMA_LIBRARIES. Without
+    # this fallback NUMA ends up empty, nothing links libnuma, and
+    # libhsa-runtime64.so fails at load time with: Undefined symbol "mbind".
+    if(NUMA_FOUND AND NOT NUMA_LIBRARIES AND TARGET NUMA::numa)
+      set(NUMA_LIBRARIES NUMA::numa)
+    endif()
     if(NUMA_FOUND)
       set(NUMA "${NUMA_LIBRARIES}")
       # When NUMA was found as a target, ensure consumers can find it too
@@ -354,7 +364,8 @@ else()
       )
     endforeach()
 
-    target_compile_options(${HSAKMT_TARGET} PRIVATE ${DRM_CFLAGS} ${HSAKMT_C_FLAGS})
+    target_compile_options(${HSAKMT_TARGET} PRIVATE ${DRM_CFLAGS} ${HSAKMT_C_FLAGS}
+      "$<$<COMPILE_LANGUAGE:C>:${HSAKMT_C_ONLY_FLAGS}>")
 
     include(CheckFunctionExists)
     include(CheckSymbolExists)
@@ -556,7 +567,8 @@ else()
           $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${CMAKE_INSTALL_LIBDIR}/wkmi.lib>)
       endif()
     endif()
-    target_compile_options(${HSAKMT_STATIC_DRM_TARGET} PRIVATE ${DRM_CFLAGS} ${HSAKMT_C_FLAGS})
+    target_compile_options(${HSAKMT_STATIC_DRM_TARGET} PRIVATE ${DRM_CFLAGS} ${HSAKMT_C_FLAGS}
+      "$<$<COMPILE_LANGUAGE:C>:${HSAKMT_C_ONLY_FLAGS}>")
     if(UNIX)
       if(HAVE_GETAUXVAL)
         target_compile_definitions(${HSAKMT_STATIC_DRM_TARGET} PRIVATE -DHAVE_GETAUXVAL=1)
