@@ -314,7 +314,7 @@ address Os::reserveMemory(address start, size_t size, size_t alignment, MemProt 
 
   size_t requested = size + alignment - pageSize();
   address mem = (address)::mmap(start, requested, memProtToOsProt(prot),
-                                MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS, 0, 0);
+                                MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS, -1, 0);
 
   // check for out of memory
   if (mem == MAP_FAILED) return NULL;
