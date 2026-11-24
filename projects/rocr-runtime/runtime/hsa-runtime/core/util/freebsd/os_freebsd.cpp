@@ -842,7 +842,7 @@ void* ReserveMemory(void* start, size_t size, size_t alignment, MemProt prot) {
 
   size_t requested = size + alignment - PageSize();
   address mem = (address)::mmap(start, requested, MemProtToOsProt(prot),
-                                MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS, 0, 0);
+                                MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS, -1, 0);
 
   // check for out of memory
   if (mem == MAP_FAILED) return NULL;
