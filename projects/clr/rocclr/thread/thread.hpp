@@ -134,7 +134,7 @@ class Thread {
 
 namespace details {
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
 
 extern __thread Thread* thread_ __attribute__((tls_model("initial-exec")));
 

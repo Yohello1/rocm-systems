@@ -102,12 +102,19 @@ static inline uint64_t current_parent_process_id() {
 #  include <sys/statvfs.h>
 #  include <sys/syscall.h>
 #  include <pthread.h>
+#if defined(__FreeBSD__)
+#include <pthread_np.h>
+#endif
 #  define HRR_WRITE(fd,b,n)  ::write((fd), (b), (n))
 #  define HRR_CLOSE(fd)      ::close((fd))
 #  define HRR_FSYNC(fd)      ::fsync((fd))
 
 static inline uint64_t current_thread_id() {
+#if defined(__FreeBSD__)
+  static thread_local uint64_t cached = static_cast<uint64_t>(pthread_getthreadid_np());
+#else
   static thread_local uint64_t cached = static_cast<uint64_t>(syscall(SYS_gettid));
+#endif
   return cached;
 }
 

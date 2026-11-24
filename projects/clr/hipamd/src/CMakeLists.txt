@@ -127,6 +127,10 @@ if(BUILD_SHARED_LIBS)
       CXX_VISIBILITY_PRESET hidden
       VISIBILITY_INLINES_HIDDEN ON)
     target_link_libraries(amdhip64 PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_LIST_DIR}/hip_hcc.map.in")
+    if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+      # lld (FreeBSD base linker) rejects version-script entries for undefined symbols.
+      target_link_options(amdhip64 PRIVATE "-Wl,--undefined-version")
+    endif()
     set_target_properties(amdhip64 PROPERTIES LINK_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/hip_hcc.map.in")
   endif()
 endif()

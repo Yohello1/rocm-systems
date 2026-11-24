@@ -27,7 +27,7 @@ void CommitRecord(OpId operation_id) {
   if (function) function(ACTIVITY_DOMAIN_HIP_OPS, operation_id, kCommitRecordSentinel);
 }
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
 __thread activity_correlation_id_t correlation_id __attribute__((tls_model("initial-exec"))) = 0;
 #elif defined(_WIN32)
 __declspec(thread) activity_correlation_id_t correlation_id = 0;

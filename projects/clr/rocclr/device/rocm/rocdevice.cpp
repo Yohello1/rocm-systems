@@ -43,7 +43,7 @@
 #include "device/rocm/rocurilocator.hpp"
 #endif
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
 #include <climits>
 #include <unistd.h>
 #endif
@@ -4294,8 +4294,11 @@ device::Signal* Device::createIpcSignal() const {
 }
 
 // ================================================================================================
+#if !defined(HOST_NAME_MAX) && defined(_POSIX_HOST_NAME_MAX)
+#define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
+#endif
 static std::string GetLocalHostName() {
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
   char buf[HOST_NAME_MAX + 1];
   buf[HOST_NAME_MAX] = '\0';
   if (gethostname(buf, sizeof(buf)) == 0) return buf;
